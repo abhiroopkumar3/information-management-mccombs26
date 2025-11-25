@@ -1,0 +1,18 @@
+TOPIC_SK,TOPIC_ID,TOPIC_NAME
+1,10,Programming
+2,13,Data Management
+3,14,Data Engineering
+4,16,Artificial Intelligence
+5,17,Data Literacy
+6,18,Data Preparation
+7,19,Exploratory Data Analysis
+8,20,Data Warehouse
+9,21,Leadership
+10,22,Cloud
+11,3,Data Manipulation
+12,4,Data Visualization
+13,5,Reporting
+14,6,Machine Learning
+15,7,Probability & Statistics
+16,8,Importing & Cleaning Data
+17,9,Applied Finance

@@ -1,0 +1,9 @@
+LANGUAGE_SK,LANGUAGE_CODE,LANGUAGE_NAME
+1,r,R
+2,python,Python
+3,sql,Sql
+4,shell,Shell
+5,julia,Julia
+6,spreadsheets,Spreadsheets
+7,containers,Containers
+8,java,Java

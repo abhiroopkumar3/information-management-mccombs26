@@ -9,43 +9,42 @@ Members: *Abhiroop Kumar (ak56448), Nikhil Kumar (nk25627), Simoni K Dalal (skd9
 
 # **1. Project Overview**
 
-This repository implements a complete **Medallion Architecture (Bronze → Silver → Gold)** for DataCamp course & track metadata.
-The goal is to build a scalable, normalized, query-efficient Snowflake analytics model suitable for:
+This repository implements a full **Bronze → Silver → Gold** Medallion Architecture for DataCamp course & track metadata.
+The Gold layer answers three explicitly defined **business questions**, with dashboards built in **Snowflake Native Streamlit**.
+
+The goal is to create a fully scalable, analytics-ready environment supporting:
 
 * dimensional modeling
-* BI dashboards
 * time-series snapshots
-* instructor/collaborator relationships
-* prerequisite graph analysis
-* track-course linkage exploration
+* course/track lineage analysis
+* difficulty segmentation
+* instructor/collaborator mapping
+* BI dashboards & KPIs
 
-The project includes full DDL, DML, and validation scripts.
+This README describes ingestion, transformation, business questions, Gold schema tables, and dashboard visualization logic.
 
 ---
 
 # **2. Architecture Summary**
 
-## **2.1 Medallion Layers**
+## **2.1 Bronze Layer – Raw Ingestion**
 
-### **Bronze Layer – Raw Ingestion**
-
-Source CSVs are copied into 4 bronze tables:
+Bronze stores raw CSV data exactly as ingested:
 
 * `DCAMP_COURSES_BRONZE`
 * `DCAMP_ALL_TRACKS_BRONZE`
 * `DCAMP_TOPIC_MAPPING_BRONZE`
 * `DCAMP_TECHNOLOGY_MAPPING_BRONZE`
-  *(Created via `01_-_ANS_BRONZE_IMPORT.sql` )*
 
-These tables preserve the raw schema, multi-valued fields, and text formats.
+(DDL + COPY INTO scripts in `01_-_ANS_BRONZE_IMPORT.sql`)
 
 ---
 
-### **Silver Layer – Standardized & Normalized**
+## **2.2 Silver Layer – Standardized, Cleaned, Normalized**
 
-Silver is split into:
+Silver contains:
 
-#### **A. Dimension Tables**
+### **A. Dimension Tables**
 
 * `DIM_COURSE`
 * `DIM_TRACK`
@@ -57,188 +56,279 @@ Silver is split into:
 * `DIM_PROGRAMMING_LANGUAGE`
 * `DIM_DIFFICULTY`
 * `DIM_DATE`
-  *(Created via `02_-_ANS_SILVER_SETUP.sql` )*
 
-Each dimension uses a **surrogate key**, enforces proper data types, and ensures 1NF/2NF normalization.
-
-#### **B. Bridge Tables (Many-to-Many Normalization)**
+### **B. Bridge Tables** (for many-to-many relationships)
 
 * `BRIDGE_COURSE_INSTRUCTOR`
 * `BRIDGE_COURSE_COLLABORATOR`
 * `BRIDGE_COURSE_TRACK`
 * `BRIDGE_COURSE_PREREQUISITE`
 
-Designed to correctly split:
-
-* multi-instructor inputs
-* collaborator lists
-* course-to-track memberships
-* prerequisite chains
-
-#### **C. Fact Tables**
+### **C. Fact Tables**
 
 * `FACT_COURSE_SNAPSHOT_SILVER`
 * `FACT_TRACK_SUMMARY_SILVER`
 
-Each fact stores metrics + snapshot date surrogate key.
+These capture course-level and track-level KPIs for every snapshot date.
 
-Data population is handled by
-`03_-_ANS_SILVER_STATIC_DATA.sql`  
-including:
-
-* multi-value LATERAL FLATTEN
-* type casting
-* date spine population
-* foreign key lookups
-* deduplication logic
+All Silver-layer logic is implemented in:
+📄 `02_-_ANS_SILVER_SETUP.sql`, `03_-_ANS_SILVER_STATIC_DATA.sql`
 
 ---
 
-### **Gold Layer – To Be Added**
+# **3. Business Questions Addressed by the Gold Layer**
 
-Gold will contain:
+The **Group Project Guidelines** require a Gold layer that answers high-level business questions and a Streamlit dashboard with three visualizations.
 
-* curated business views
-* BI star schema views
-* dashboards and KPIs
-* aggregated semantic layer
-* ready-to-consume reporting tables
-
-Template stub exists in:
-`04_-_ANS_GOLD_VISUALIZATION.sql` 
+Below are the **three business questions** selected and implemented.
 
 ---
 
-# **3. Key Features of This ETL**
+## **3.1 Business Question 1 – Programming Language Instructional Effort**
 
-### ✔ Fully normalized Snowflake Dimensional Model
+> *Across all DataCamp courses, which programming languages require the most instructional effort?*
+> Metrics include: instructional hours, chapters, exercises, and videos.
 
-* All multi-valued fields (instructors, collaborators, tracks, prerequisites) are split into bridge tables.
-* Surrogate keys for all DIMs ensure stable foreign key relationships.
-* Bronze string columns are converted to NUMBER, BOOLEAN, DATE.
-
-### ✔ Accurate Course/Track Lineage
-
-* `BRIDGE_COURSE_TRACK` maps many-to-many relationships between courses & tracks.
-* `BRIDGE_COURSE_INSTRUCTOR` captures course → instructor role relationships.
-* `BRIDGE_COURSE_COLLABORATOR` isolates collaborators separately.
-* `BRIDGE_COURSE_PREREQUISITE` resolves title-based references to SK-based mapping.
-
-### ✔ Snapshot Facts
-
-* Both fact tables use a **snapshot_date_sk** tied to `DIM_DATE`.
-* Snapshot date = most recent last_updated date found in Bronze.
-
-### ✔ End-to-End Validation Included
-
-Using the queries in `03_-_ANS_SILVER_STATIC_DATA.sql`:
-
-* Course counts match between bronze and fact
-* Track counts match
-* `0 orphan courses` in facts
-* `0 orphan tracks` in facts
+Gold Table:
+✔ `G_LANGUAGE_INSTRUCTIONAL_EFFORT`
+Grain: one row per programming language.
 
 ---
 
-# **4. Repository Structure**
+## **3.2 Business Question 2 – Track-Level Content Summary**
+
+> *For each career or skill track, what is the total learning content (time, chapters, exercises, videos), and how many courses does the track include?*
+
+Gold Table:
+✔ `G_TRACK_CONTENT_SUMMARY`
+Grain: one row per track.
+
+---
+
+## **3.3 Business Question 3 – Difficulty Distribution & Curriculum Depth**
+
+> *How is the course catalog distributed across difficulty levels (Beginner / Intermediate / Advanced), and which difficulty level contributes the most total learning content?*
+
+Gold Table:
+✔ `G_DIFFICULTY_CONTENT_SUMMARY`
+Grain: one row per difficulty level.
+
+---
+
+# **4. Gold Layer – Business Aggregation Tables**
+
+The Gold layer aggregates information from **FACT_COURSE_SNAPSHOT_SILVER** and **Silver dimensions** into business-ready tables.
+
+These tables are created inside `04_-_ANS_GOLD_VISUALIZATION.sql`.
+
+---
+
+## **4.1 G_LANGUAGE_INSTRUCTIONAL_EFFORT**
+
+Purpose: Answer Business Question 1.
+
+```sql
+CREATE OR REPLACE TABLE GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT AS
+WITH latest AS (
+    SELECT MAX(snapshot_date_sk) AS snapshot_date_sk
+    FROM SILVER.FACT_COURSE_SNAPSHOT_SILVER
+)
+SELECT
+    pl.language_sk,
+    pl.language_name,
+    COUNT(DISTINCT c.course_sk)         AS course_count,
+    SUM(c.time_needed_hours)            AS total_time_hours,
+    SUM(f.num_chapters)                 AS total_chapters,
+    SUM(f.num_exercises)                AS total_exercises,
+    SUM(f.num_videos)                   AS total_videos,
+    AVG(c.time_needed_hours)            AS avg_time_hours_per_course,
+    AVG(f.num_chapters)                 AS avg_chapters_per_course,
+    AVG(f.num_exercises)                AS avg_exercises_per_course,
+    AVG(f.num_videos)                   AS avg_videos_per_course
+FROM SILVER.FACT_COURSE_SNAPSHOT_SILVER f
+JOIN SILVER.DIM_COURSE c
+    ON f.course_sk = c.course_sk
+JOIN SILVER.DIM_PROGRAMMING_LANGUAGE pl
+    ON c.programming_language_sk = pl.language_sk
+JOIN latest ls
+    ON f.snapshot_date_sk = ls.snapshot_date_sk
+GROUP BY pl.language_sk, pl.language_name, ls.snapshot_date_sk;
+```
+
+---
+
+## **4.2 G_TRACK_CONTENT_SUMMARY**
+
+Purpose: Answer Business Question 2.
+
+```sql
+CREATE OR REPLACE TABLE GOLD.G_TRACK_CONTENT_SUMMARY AS
+WITH latest AS (
+    SELECT MAX(snapshot_date_sk) AS snapshot_date_sk
+    FROM SILVER.FACT_COURSE_SNAPSHOT_SILVER
+)
+SELECT
+    t.track_sk,
+    t.track_title,
+    t.is_career_flag,
+    COUNT(DISTINCT c.course_sk)         AS course_count,
+    SUM(c.time_needed_hours)            AS total_time_hours,
+    SUM(f.num_chapters)                 AS total_chapters,
+    SUM(f.num_exercises)                AS total_exercises,
+    SUM(f.num_videos)                   AS total_videos
+FROM SILVER.FACT_COURSE_SNAPSHOT_SILVER f
+JOIN SILVER.DIM_COURSE c
+    ON f.course_sk = c.course_sk
+JOIN SILVER.BRIDGE_COURSE_TRACK b
+    ON c.course_sk = b.course_sk
+JOIN SILVER.DIM_TRACK t
+    ON b.track_sk = t.track_sk
+JOIN latest ls
+    ON f.snapshot_date_sk = ls.snapshot_date_sk
+GROUP BY t.track_sk, t.track_title, t.is_career_flag, ls.snapshot_date_sk;
+```
+
+---
+
+## **4.3 G_DIFFICULTY_CONTENT_SUMMARY**
+
+Purpose: Answer Business Question 3.
+
+```sql
+CREATE OR REPLACE TABLE GOLD.G_DIFFICULTY_CONTENT_SUMMARY AS
+WITH latest AS (
+    SELECT MAX(snapshot_date_sk) AS snapshot_date_sk
+    FROM SILVER.FACT_COURSE_SNAPSHOT_SILVER
+)
+SELECT
+    d.difficulty_sk,
+    d.difficulty_code,
+    d.difficulty_order,
+    COUNT(DISTINCT c.course_sk)          AS course_count,
+    SUM(c.time_needed_hours)             AS total_time_hours,
+    SUM(f.num_chapters)                  AS total_chapters,
+    SUM(f.num_exercises)                 AS total_exercises,
+    SUM(f.num_videos)                    AS total_videos
+FROM SILVER.FACT_COURSE_SNAPSHOT_SILVER f
+JOIN SILVER.DIM_COURSE c
+    ON f.course_sk = c.course_sk
+JOIN SILVER.DIM_DIFFICULTY d
+    ON c.difficulty_sk = d.difficulty_sk
+JOIN latest ls
+    ON f.snapshot_date_sk = ls.snapshot_date_sk
+GROUP BY d.difficulty_sk, d.difficulty_code, d.difficulty_order, ls.snapshot_date_sk;
+```
+
+---
+
+# **5. Streamlit Dashboard – Three Required Visualizations**
+
+The project requires a **Snowflake Streamlit dashboard** with three visualizations derived exclusively from the Gold layer.
+
+Dashboard is implemented inside the Snowflake Notebook using:
+
+* Three SQL cells (one for each Gold table)
+* One Streamlit Python cell
+* Charts based on `.to_pandas()` outputs
+
+---
+
+## **5.1 SQL Queries Feeding Streamlit**
+
+### **Language-level view**
+
+```sql
+SELECT * FROM GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT;
+```
+
+### **Track-level view**
+
+```sql
+SELECT * FROM GOLD.G_TRACK_CONTENT_SUMMARY;
+```
+
+### **Difficulty-level view**
+
+```sql
+SELECT * FROM GOLD.G_DIFFICULTY_CONTENT_SUMMARY;
+```
+
+---
+
+## **5.2 Streamlit Visualization Code**
+
+```python
+import streamlit as st
+
+lang_df = lang_effort_sql.to_pandas()
+track_df = track_content_sql.to_pandas()
+diff_df = difficulty_content_sql.to_pandas()
+
+st.title("ANS – DataCamp Gold Layer Dashboard")
+
+tab_lang, tab_track, tab_diff = st.tabs([
+    "1. By Programming Language",
+    "2. By Track",
+    "3. By Difficulty Level"
+])
+
+with tab_lang:
+    st.subheader("Instructional Effort by Programming Language")
+    st.bar_chart(lang_df, x="LANGUAGE_NAME", y="TOTAL_TIME_HOURS")
+
+with tab_track:
+    st.subheader("Total Learning Hours by Track")
+    st.bar_chart(track_df, x="TRACK_TITLE", y="TOTAL_TIME_HOURS")
+
+with tab_diff:
+    st.subheader("Course Distribution by Difficulty")
+    st.bar_chart(diff_df, x="DIFFICULTY_CODE", y="COURSE_COUNT")
+```
+
+These three visualizations complete the project’s dashboard requirement.
+
+---
+
+# **6. Repository Structure**
 
 ```
 project/
 │
-├── 01_-_ANS_BRONZE_IMPORT.sql        # Bronze DDL + COPY INTO        :contentReference[oaicite:4]{index=4}
-├── 02_-_ANS_SILVER_SETUP.sql         # Silver DDL layer              :contentReference[oaicite:5]{index=5}
-├── 03_-_ANS_SILVER_STATIC_DATA.sql   # Silver DML/ETL                :contentReference[oaicite:6]{index=6}
-├── 04_-_ANS_GOLD_VISUALIZATION.sql   # Gold placeholders             :contentReference[oaicite:7]{index=7}
-├── 05_-_BASIC_TABLE_QUERYING.sql     # Query samples + checks        :contentReference[oaicite:8]{index=8}
+├── 01_-_ANS_BRONZE_IMPORT.sql
+├── 02_-_ANS_SILVER_SETUP.sql
+├── 03_-_ANS_SILVER_STATIC_DATA.sql
+├── 04_-_ANS_GOLD_VISUALIZATION.sql     # Gold tables + SQL for dashboard
+├── Lab 9 - Data Visualization Queries for Streamlit.sql
+├── sample_streamlit_app.py
 │
-└── README.md (this file)
+└── README.md   (this file)
 ```
 
 ---
 
-# **5. Data Flow Diagram (High-Level)**
+# **7. How to Run the Full Pipeline**
 
-```
- BRONZE (Raw CSVs)
-      │
-      ▼
- SILVER DIMENSIONS ──────────────┐
- SILVER BRIDGES (M:N tables)     │──► STAR MODEL
- SILVER FACTS (Snapshot)         │
-      │                          │
-      ▼                          │
- GOLD (Business Views, KPIs, Dashboards)   ← (To Be Added)
-```
+1. Run Bronze import
+2. Run Silver DDL
+3. Run Silver DML
+4. Validate
+5. Create Gold tables
+6. Run Streamlit cells inside Snowflake Notebook
 
 ---
 
-# **6. How to Run the Pipeline (Quick Start)**
+# **8. Final Notes**
 
-1. **Run Bronze Import**
+Future improvements:
 
-   ```sql
-   !execute 01_-_ANS_BRONZE_IMPORT.sql
-   ```
-
-2. **Run Silver Setup (DDL)**
-
-   ```sql
-   !execute 02_-_ANS_SILVER_SETUP.sql
-   ```
-
-3. **Run Silver ETL (DML)**
-
-   ```sql
-   !execute 03_-_ANS_SILVER_STATIC_DATA.sql
-   ```
-
-4. **Run validation queries**
-
-   ```sql
-   !execute 05_-_BASIC_TABLE_QUERYING.sql
-   ```
-
-5. Add Gold logic later in
-   `04_-_ANS_GOLD_VISUALIZATION.sql`.
-
----
-
-# **7. Next Steps (to fill in later)**
-
-You can expand the README with:
-
-### **Gold Layer Enhancements**
-
-* KPI materialized views
-* Course popularity trend view
-* Track difficulty segmentation view
-* Instructor activity dashboards
-
-### **Performance Optimization**
-
-* Clustering by snapshot_date_sk
-* Result scan caching
-* Micro-partition pruning examples
-
-### **Analytics Examples**
-
-* “What skills are most common across top tracks?”
-* “Which courses have the highest time-to-XP ratio?”
-* “Most frequent prerequisite chains.”
-
-### **ERDs**
-
-* Add Mermaid or dbdiagram.io diagrams for DIM/FACT/BRIDGE layers
-
----
-
-# **8. Versioning & Change Log**
-
-*(Leave placeholders for future updates)*
+* Materialized views for performance
+* KPI dashboard
+* Instructor-level insights
+* Track difficulty progression analysis
 
 ---
 
 # **9. License & Ownership**
 
-This project is built for **University of Texas MSBA – Data Engineering Term Project**.
+This project is built for **University of Texas MSBA – Information Management Term Project**.
 Authors: Team **ANS**.

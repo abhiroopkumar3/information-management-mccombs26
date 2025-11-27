@@ -88,10 +88,14 @@ SELECT * FROM DB_TEAM_ANS.SILVER.FACT_TRACK_SUMMARY_SILVER;
 ------------------------------------------------------------------
 -- 2. GOLD SCHEMA
 ------------------------------------------------------------------
+-- View G_LANGUAGE_INSTRUCTIONAL_EFFORT table
+SELECT * FROM DB_TEAM_ANS.GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT;
 
--- To be added.
--- ...
--- ...
+-- View G_TRACK_CONTENT_SUMMARY table
+SELECT * FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY;
+
+-- View G_DIFFICULTY_CONTENT_SUMMARY table
+SELECT * FROM DB_TEAM_ANS.GOLD.G_DIFFICULTY_CONTENT_SUMMARY;
 
 ------------------------------------------------------------------
 -- END OF SCRIPT

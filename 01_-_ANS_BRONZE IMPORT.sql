@@ -19,6 +19,9 @@ USE DATABASE DB_TEAM_ANS;
 ------------------------------------------------------------------
 -- 1. CREATE BRONZE SCHEMA
 ------------------------------------------------------------------
+-- Drop schema before recreating it
+DROP SCHEMA IF EXISTS BRONZE CASCADE;
+
 CREATE SCHEMA IF NOT EXISTS BRONZE;
 
 USE SCHEMA DB_TEAM_ANS.BRONZE;
@@ -46,13 +49,16 @@ CREATE OR REPLACE FILE FORMAT DCAMP_BRONZE_CSV_FF
     EMPTY_FIELD_AS_NULL            = TRUE
     ERROR_ON_COLUMN_COUNT_MISMATCH = FALSE;
 
+-- Optional sanity checks
+DESCRIBE FILE FORMAT DCAMP_BRONZE_CSV_FF;
+
 ------------------------------------------------------------------
 -- 4. CREATE BRONZE TABLES
 ------------------------------------------------------------------
 
------------------------------
+------------------------------------------------------------------
 -- 4.1 COURSES BRONZE TABLE
------------------------------
+------------------------------------------------------------------
 CREATE OR REPLACE TABLE DCAMP_COURSES_BRONZE (
     id                   VARCHAR,
     title                VARCHAR,
@@ -79,9 +85,9 @@ CREATE OR REPLACE TABLE DCAMP_COURSES_BRONZE (
     prerequisites_titles VARCHAR
 );
 
---------------------------------
+------------------------------------------------------------------
 -- 4.2 ALL_TRACKS BRONZE TABLE
---------------------------------
+------------------------------------------------------------------
 CREATE OR REPLACE TABLE DCAMP_ALL_TRACKS_BRONZE (
     track_id                 VARCHAR,
     track_title              VARCHAR,
@@ -103,17 +109,17 @@ CREATE OR REPLACE TABLE DCAMP_ALL_TRACKS_BRONZE (
     participant_count        VARCHAR
 );
 
-----------------------------------
+------------------------------------------------------------------
 -- 4.3 TOPIC_MAPPING BRONZE TABLE
-----------------------------------
+------------------------------------------------------------------
 CREATE OR REPLACE TABLE DCAMP_TOPIC_MAPPING_BRONZE (
     topic_id   VARCHAR,
     topic_name VARCHAR
 );
 
-----------------------------------------
+------------------------------------------------------------------
 -- 4.4 TECHNOLOGY_MAPPING BRONZE TABLE
-----------------------------------------
+------------------------------------------------------------------
 CREATE OR REPLACE TABLE DCAMP_TECHNOLOGY_MAPPING_BRONZE (
     technology_id   VARCHAR,
     technology_name VARCHAR
@@ -123,9 +129,9 @@ CREATE OR REPLACE TABLE DCAMP_TECHNOLOGY_MAPPING_BRONZE (
 -- 5. LOAD DATA FROM STAGE INTO BRONZE TABLES (COPY INTO)
 ------------------------------------------------------------------
 
-----------------------
+------------------------------------------------------------------
 -- 5.1 LOAD COURSES
-----------------------
+------------------------------------------------------------------
 -- Ensure table is empty before data load
 TRUNCATE TABLE DCAMP_COURSES_BRONZE;
 
@@ -139,9 +145,9 @@ ON_ERROR = ABORT_STATEMENT;
 -- Optional check
 SELECT * FROM DCAMP_COURSES_BRONZE;
 
--------------------------
+------------------------------------------------------------------
 -- 5.2 LOAD ALL_TRACKS
--------------------------
+------------------------------------------------------------------
 -- Ensure table is empty before data load
 TRUNCATE TABLE DCAMP_ALL_TRACKS_BRONZE;
 
@@ -155,9 +161,9 @@ ON_ERROR = ABORT_STATEMENT;
 -- Optional check
 SELECT * FROM DCAMP_ALL_TRACKS_BRONZE;
 
------------------------------
+------------------------------------------------------------------
 -- 5.3 LOAD TOPIC_MAPPING
------------------------------
+------------------------------------------------------------------
 -- Ensure table is empty before data load
 TRUNCATE TABLE DCAMP_TOPIC_MAPPING_BRONZE;
 
@@ -171,9 +177,9 @@ ON_ERROR = ABORT_STATEMENT;
 -- Optional check
 SELECT * FROM DCAMP_TOPIC_MAPPING_BRONZE;
 
----------------------------------
+------------------------------------------------------------------
 -- 5.4 LOAD TECHNOLOGY_MAPPING
----------------------------------
+------------------------------------------------------------------
 -- Ensure table is empty before data load
 TRUNCATE TABLE DCAMP_TECHNOLOGY_MAPPING_BRONZE;
 

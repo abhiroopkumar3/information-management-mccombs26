@@ -19,6 +19,9 @@ USE DATABASE DB_TEAM_ANS;
 ------------------------------------------------------------------
 -- 1. CREATE GOLD SCHEMA
 ------------------------------------------------------------------
+-- Drop schema before recreating it
+DROP SCHEMA IF EXISTS GOLD CASCADE;
+
 CREATE SCHEMA IF NOT EXISTS GOLD;
 
 USE SCHEMA DB_TEAM_ANS.GOLD;
@@ -39,7 +42,13 @@ USE SCHEMA DB_TEAM_ANS.GOLD;
 -- Silver tables required: FACT_COURSE_SNAPSHOT_SILVER, DIM_COURSE, DIM_DIFFICULTY
 
 ------------------------------------------------------------------
--- 3. G_LANGUAGE_INSTRUCTIONAL_EFFORT
+-- 3. CREATE GOLD TABLES
+------------------------------------------------------------------
+
+-- NOTE: Gold tables will be created as Dynamic tables to ensure that the incremental data from silver tables is updated in the gold tables immediately (TARGET_LAG = '1 MINUTE')
+
+------------------------------------------------------------------
+-- 3.1 G_LANGUAGE_INSTRUCTIONAL_EFFORT
 ------------------------------------------------------------------
 -- Use Case 1:
 -- Across all DataCamp courses, which programming languages require
@@ -51,7 +60,10 @@ USE SCHEMA DB_TEAM_ANS.GOLD;
 --   SILVER.DIM_COURSE
 --   SILVER.DIM_PROGRAMMING_LANGUAGE
 ------------------------------------------------------------------
-CREATE OR REPLACE TABLE G_LANGUAGE_INSTRUCTIONAL_EFFORT AS
+CREATE OR REPLACE DYNAMIC TABLE G_LANGUAGE_INSTRUCTIONAL_EFFORT
+TARGET_LAG = '1 MINUTE'
+WAREHOUSE = 'ANIMAL_TASK_WH'
+AS
 WITH latest_snapshot AS (
     SELECT MAX(snapshot_date_sk) AS snapshot_date_sk
     FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER
@@ -91,7 +103,7 @@ GROUP BY
 SELECT * FROM G_LANGUAGE_INSTRUCTIONAL_EFFORT;
 
 ------------------------------------------------------------------
--- 4. G_TRACK_CONTENT_SUMMARY
+-- 3.2. G_TRACK_CONTENT_SUMMARY
 ------------------------------------------------------------------
 -- Use Case 2:
 -- For each career or skill track, what is the total learning content
@@ -105,7 +117,10 @@ SELECT * FROM G_LANGUAGE_INSTRUCTIONAL_EFFORT;
 --   SILVER.BRIDGE_COURSE_TRACK
 --   SILVER.DIM_TRACK
 ------------------------------------------------------------------
-CREATE OR REPLACE TABLE G_TRACK_CONTENT_SUMMARY AS
+CREATE OR REPLACE DYNAMIC TABLE G_TRACK_CONTENT_SUMMARY
+TARGET_LAG = '1 MINUTE'
+WAREHOUSE = 'ANIMAL_TASK_WH'
+AS
 WITH latest_snapshot AS (
     SELECT MAX(snapshot_date_sk) AS snapshot_date_sk
     FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER
@@ -150,7 +165,7 @@ GROUP BY
 SELECT * FROM G_TRACK_CONTENT_SUMMARY;
 
 ------------------------------------------------------------------
--- 5. G_DIFFICULTY_CONTENT_SUMMARY
+-- 3.3. G_DIFFICULTY_CONTENT_SUMMARY
 ------------------------------------------------------------------
 -- Use Case 3:
 -- How is the course catalog distributed across difficulty levels
@@ -164,7 +179,10 @@ SELECT * FROM G_TRACK_CONTENT_SUMMARY;
 --   SILVER.DIM_COURSE
 --   SILVER.DIM_DIFFICULTY
 ------------------------------------------------------------------
-CREATE OR REPLACE TABLE G_DIFFICULTY_CONTENT_SUMMARY AS
+CREATE OR REPLACE DYNAMIC TABLE G_DIFFICULTY_CONTENT_SUMMARY
+TARGET_LAG = '1 MINUTE'
+WAREHOUSE = 'ANIMAL_TASK_WH'
+AS
 WITH latest_snapshot AS (
     SELECT MAX(snapshot_date_sk) AS snapshot_date_sk
     FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER
@@ -205,6 +223,26 @@ GROUP BY
 
 -- Optional check
 SELECT * FROM G_DIFFICULTY_CONTENT_SUMMARY;
+
+------------------------------------------------------------------
+-- 8. CREATE AUDIT TABLE FOR ROW-COUNT COMPARISONS (INCREMENTAL DATA)
+------------------------------------------------------------------
+-- Create Sequence for Audit Log Table
+CREATE OR REPLACE SEQUENCE G_AUDIT_PK_SEQ_1 START with 1 INCREMENT by 1 order;
+
+CREATE TABLE IF NOT EXISTS GOLD_LOAD_AUDIT (
+    audit_id                              NUMBER PRIMARY KEY DEFAULT G_AUDIT_PK_SEQ_1.nextval,
+    load_ts                               TIMESTAMP_NTZ,
+
+    -- Gold layer row counts
+    gold_language_rows                    NUMBER,
+    gold_track_content_rows               NUMBER,
+    gold_difficulty_content_rows          NUMBER,
+
+    -- Silver layer comparison (optional but nice for validation)
+    silver_fact_course_rows               NUMBER,
+    silver_fact_track_rows                NUMBER
+);
 
 ------------------------------------------------------------------
 -- END OF SCRIPT

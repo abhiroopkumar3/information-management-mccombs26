@@ -5,7 +5,7 @@
 -- ROLE: ROLE_TEAM_ANS
 -- DUE: Dec 8 at 11:59pm
 
--- FILE NAME: BASIC_TABLE_QUERYING.sql
+-- FILE NAME: ALL_TABLES_QUERYING.sql
 
 -- SOLUTION
 
@@ -96,6 +96,15 @@ SELECT * FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY;
 
 -- View G_DIFFICULTY_CONTENT_SUMMARY table
 SELECT * FROM DB_TEAM_ANS.GOLD.G_DIFFICULTY_CONTENT_SUMMARY;
+
+------------------------------------------------------------------
+-- 2. AUDIT LOG TABLES
+------------------------------------------------------------------
+-- View SILVER_LOAD_AUDIT table
+SELECT * FROM DB_TEAM_ANS.SILVER.SILVER_LOAD_AUDIT;
+
+-- View GOLD_LOAD_AUDIT table
+SELECT * FROM DB_TEAM_ANS.GOLD.GOLD_LOAD_AUDIT;
 
 ------------------------------------------------------------------
 -- END OF SCRIPT

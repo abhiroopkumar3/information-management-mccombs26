@@ -19,6 +19,9 @@ USE DATABASE DB_TEAM_ANS;
 ------------------------------------------------------------------
 -- 1. CREATE SILVER SCHEMA
 ------------------------------------------------------------------
+-- Drop schema before recreating it
+DROP SCHEMA IF EXISTS SILVER CASCADE;
+
 CREATE SCHEMA IF NOT EXISTS SILVER;
 
 USE SCHEMA DB_TEAM_ANS.SILVER;
@@ -56,6 +59,9 @@ CREATE OR REPLACE SEQUENCE DIM_PK_SEQ_10 START with 1 INCREMENT by 1 order;
 -- For Fact Tables
 CREATE OR REPLACE SEQUENCE FACT_PK_SEQ_1 START with 1 INCREMENT by 1 order;
 CREATE OR REPLACE SEQUENCE FACT_PK_SEQ_2 START with 1 INCREMENT by 1 order;
+
+-- For Audit Log Table
+CREATE OR REPLACE SEQUENCE S_AUDIT_PK_SEQ_1 START with 1 INCREMENT by 1 order;
 
 ------------------------------------------------------------------
 -- 4. CREATE SILVER DIMENSION TABLES
@@ -493,6 +499,24 @@ CREATE OR REPLACE TABLE BRIDGE_COURSE_COLLABORATOR (
 
     CONSTRAINT FK_BCC_COLLABORATOR
         FOREIGN KEY (collaborator_sk) REFERENCES DIM_COLLABORATOR(collaborator_sk)
+);
+
+------------------------------------------------------------------
+-- 7. CREATE AUDIT TABLE FOR ROW-COUNT COMPARISONS (INCREMENTAL DATA)
+------------------------------------------------------------------
+CREATE OR REPLACE TABLE SILVER_LOAD_AUDIT (
+    audit_id                       NUMBER PRIMARY KEY DEFAULT S_AUDIT_PK_SEQ_1.nextval,
+    load_ts                        TIMESTAMP_NTZ,
+
+    -- Courses side
+    bronze_courses_row_count       NUMBER,
+    silver_dim_course_row_count    NUMBER,
+    silver_fact_course_rows        NUMBER,
+
+    -- Tracks side
+    bronze_tracks_row_count        NUMBER,
+    silver_dim_track_row_count     NUMBER,
+    silver_fact_track_rows         NUMBER
 );
 
 ------------------------------------------------------------------

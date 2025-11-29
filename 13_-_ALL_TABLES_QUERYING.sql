@@ -98,7 +98,7 @@ SELECT * FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY;
 SELECT * FROM DB_TEAM_ANS.GOLD.G_DIFFICULTY_CONTENT_SUMMARY;
 
 ------------------------------------------------------------------
--- 2. AUDIT LOG TABLES
+-- 3. AUDIT LOG TABLES
 ------------------------------------------------------------------
 -- View SILVER_LOAD_AUDIT table
 SELECT * FROM DB_TEAM_ANS.SILVER.SILVER_LOAD_AUDIT;

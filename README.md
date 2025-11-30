@@ -583,6 +583,7 @@ These CSVs provide **verifiable evidence** for each layer and each load step.
 
 ```bash
 project/
+├── 00_-_ANS_TERM_PROJECT_MERGED_SCRIPT.sql
 ├── 01_-_ANS_BRONZE_IMPORT.sql
 ├── 02_-_ANS_SILVER_SETUP.sql
 ├── 03_-_ANS_SILVER_STATIC_DATA.sql

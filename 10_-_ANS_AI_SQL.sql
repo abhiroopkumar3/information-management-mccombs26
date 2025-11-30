@@ -91,5 +91,5 @@ FROM DCAMP_COURSES_BRONZE
 ORDER BY ai_title_similarity DESC;
 
 ------------------------------------------------------------------
--- 1. END OF SCRIPT
+-- END OF SCRIPT
 ------------------------------------------------------------------

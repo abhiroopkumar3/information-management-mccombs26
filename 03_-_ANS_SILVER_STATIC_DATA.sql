@@ -48,10 +48,10 @@ SELECT
     YEAR(d)                                     AS year,
     QUARTER(d)                                  AS quarter,
     MONTH(d)                                    AS month,
-    TO_CHAR(d, 'Month')                         AS month_name,
+    TO_CHAR(d, 'MON')                           AS month_name,
     DAY(d)                                      AS day_of_month,
     DAYOFWEEK(d)                                AS day_of_week,
-    TO_CHAR(d, 'Day')                           AS day_name,
+    TO_CHAR(d, 'DY')                            AS day_name,
     WEEKOFYEAR(d)                               AS week_of_year,
     CASE WHEN DAYOFWEEK(d) IN (1,7) THEN TRUE ELSE FALSE END AS is_weekend
 FROM (

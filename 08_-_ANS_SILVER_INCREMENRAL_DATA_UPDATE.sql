@@ -186,17 +186,7 @@ BEGIN
       );
 
 
-    -- DIM_DIFFICULTY  (static small table – safe to recreate)
-    TRUNCATE TABLE DIM_DIFFICULTY;
-
-    INSERT INTO DIM_DIFFICULTY (
-        difficulty_code, 
-        difficulty_order
-    )
-    VALUES
-        ('Beginner', 1),
-        ('Intermediate', 2),
-        ('Advanced', 3);
+    -- DIM_DIFFICULTY  (static small table – no need to recreate)
 
 
     -- DIM_CONTENT_AREA
@@ -540,6 +530,41 @@ END;
 
 -- Call REFRESH_SILVER_TABLES()
 CALL REFRESH_SILVER_TABLES();
+
+------------------------------------------------------------------
+-- 2. CREATE SCHEDULED TASK (Dropped!)
+------------------------------------------------------------------
+-- Unusable due to insufficient role privileges.
+-- Unable to grant EXECUTE TASK privilege to `ROLE_TEAM_ANS`.
+-- Getting error, `Grant not executed: Insufficient privileges.`
+-- As such, could not proceed with auto-ingestion of SILVER tables
+------------------------------------------------------------------
+-- CREATE OR REPLACE TASK REFRESH_SILVER_TABLES_TASK
+--   WAREHOUSE = ANIMAL_TASK_WH
+--   SCHEDULE = '1 MINUTE'  -- adjust as needed: '5 MINUTE', '1 HOUR', etc.
+-- AS
+--   CALL DB_TEAM_ANS.SILVER.REFRESH_SILVER_TABLES();   -- Call REFRESH_SILVER_TABLES()
+
+-- -- Optional sanity check
+-- SHOW TASKS IN SCHEMA DB_TEAM_ANS.SILVER;
+
+-- -- Grant EXECUTE TASK to the task owner role
+-- GRANT EXECUTE TASK ON ACCOUNT TO ROLE ROLE_TEAM_ANS;
+
+-- -- Enable the task (by default a task is created suspended)
+-- ALTER TASK REFRESH_SILVER_TABLES_TASK RESUME;
+
+-- -- Temporarily stop it
+-- -- ALTER TASK REFRESH_SILVER_TABLES_TASK SUSPEND;
+
+-- -- Optional: see history once it starts running
+-- SELECT *
+-- FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(
+--     TASK_NAME => 'REFRESH_SILVER_TABLES_TASK',
+--     RESULT_LIMIT => 20
+-- ));
+
+-- DROP TASK REFRESH_SILVER_TABLES_TASK;
 
 ------------------------------------------------------------------
 -- END OF SCRIPT

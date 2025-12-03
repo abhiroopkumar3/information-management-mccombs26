@@ -57,7 +57,12 @@ SELECT
     gold_track_content_rows,
     gold_difficulty_content_rows,
     silver_fact_course_rows,
-    silver_fact_track_rows
+    silver_fact_track_rows,
+    gold_language_total_courses,
+    gold_language_total_subs,
+    gold_track_total_courses,
+    gold_track_total_subs,
+    gold_difficulty_total_subs
 FROM DB_TEAM_ANS.GOLD.GOLD_LOAD_AUDIT
 ORDER BY audit_id;
 

@@ -782,10 +782,10 @@ SELECT
     YEAR(d)                                     AS year,
     QUARTER(d)                                  AS quarter,
     MONTH(d)                                    AS month,
-    TO_CHAR(d, 'Month')                         AS month_name,
+    TO_CHAR(d, 'MON')                           AS month_name,
     DAY(d)                                      AS day_of_month,
     DAYOFWEEK(d)                                AS day_of_week,
-    TO_CHAR(d, 'Day')                           AS day_name,
+    TO_CHAR(d, 'DY')                            AS day_name,
     WEEKOFYEAR(d)                               AS week_of_year,
     CASE WHEN DAYOFWEEK(d) IN (1,7) THEN TRUE ELSE FALSE END AS is_weekend
 FROM (
@@ -1609,7 +1609,6 @@ SELECT
     AVG(f.num_videos)                                  AS avg_videos_per_course,
 
     SUM(f.nb_of_subscriptions)                         AS total_nb_of_subscriptions,
-    SUM(f.datasets_count)                              AS total_datasets_count,
 
     ls.snapshot_date_sk                                AS snapshot_date_sk
 FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER f
@@ -1671,7 +1670,6 @@ SELECT
     AVG(f.num_videos)                                  AS avg_videos_per_course,
 
     SUM(f.nb_of_subscriptions)                         AS total_nb_of_subscriptions,
-    SUM(f.datasets_count)                              AS total_datasets_count,
 
     ls.snapshot_date_sk                                AS snapshot_date_sk
 FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER f
@@ -1707,7 +1705,14 @@ CREATE TABLE IF NOT EXISTS GOLD_LOAD_AUDIT (
 
     -- Silver layer comparison (optional but nice for validation)
     silver_fact_course_rows               NUMBER,
-    silver_fact_track_rows                NUMBER
+    silver_fact_track_rows                NUMBER,
+
+    -- Gold layer aggregate metrics
+    gold_language_total_courses           NUMBER,
+    gold_language_total_subs              NUMBER,
+    gold_track_total_courses              NUMBER,
+    gold_track_total_subs                 NUMBER,
+    gold_difficulty_total_subs            NUMBER
 );
 
 
@@ -1796,7 +1801,12 @@ BEGIN
         gold_track_content_rows,
         gold_difficulty_content_rows,
         silver_fact_course_rows,
-        silver_fact_track_rows
+        silver_fact_track_rows,
+        gold_language_total_courses,
+        gold_language_total_subs,
+        gold_track_total_courses,
+        gold_track_total_subs,
+        gold_difficulty_total_subs
     )
     SELECT
         CURRENT_TIMESTAMP()                                              AS load_ts,
@@ -1808,7 +1818,19 @@ BEGIN
 
         -- Silver facts (for upstream comparison)
         (SELECT COUNT(*) FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER),
-        (SELECT COUNT(*) FROM DB_TEAM_ANS.SILVER.FACT_TRACK_SUMMARY_SILVER);
+        (SELECT COUNT(*) FROM DB_TEAM_ANS.SILVER.FACT_TRACK_SUMMARY_SILVER),
+
+        -- Gold aggregate metrics (these should change as new courses/tracks are loaded)
+        (SELECT SUM(course_count)
+           FROM DB_TEAM_ANS.GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT),
+        (SELECT SUM(total_nb_of_subscriptions)
+           FROM DB_TEAM_ANS.GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT),
+        (SELECT SUM(course_count)
+           FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY),
+        (SELECT SUM(total_nb_of_subscriptions)
+           FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY),
+        (SELECT SUM(total_nb_of_subscriptions)
+            FROM DB_TEAM_ANS.GOLD.G_DIFFICULTY_CONTENT_SUMMARY);
 
     RETURN 'Gold metrics recorded in GOLD_LOAD_AUDIT.';
 END;
@@ -1824,7 +1846,12 @@ SELECT
     gold_track_content_rows,
     gold_difficulty_content_rows,
     silver_fact_course_rows,
-    silver_fact_track_rows
+    silver_fact_track_rows,
+    gold_language_total_courses,
+    gold_language_total_subs,
+    gold_track_total_courses,
+    gold_track_total_subs,
+    gold_difficulty_total_subs
 FROM DB_TEAM_ANS.GOLD.GOLD_LOAD_AUDIT
 ORDER BY audit_id;
 
@@ -2839,6 +2866,41 @@ END;
 -- Call REFRESH_SILVER_TABLES()
 CALL REFRESH_SILVER_TABLES();
 
+------------------------------------------------------------------
+-- 2. CREATE SCHEDULED TASK (Dropped!)
+------------------------------------------------------------------
+-- Unusable due to insufficient role privileges.
+-- Unable to grant EXECUTE TASK privilege to `ROLE_TEAM_ANS`.
+-- Getting error, `Grant not executed: Insufficient privileges.`
+-- As such, could not proceed with auto-ingestion of SILVER tables
+------------------------------------------------------------------
+-- CREATE OR REPLACE TASK REFRESH_SILVER_TABLES_TASK
+--   WAREHOUSE = ANIMAL_TASK_WH
+--   SCHEDULE = '1 MINUTE'  -- adjust as needed: '5 MINUTE', '1 HOUR', etc.
+-- AS
+--   CALL DB_TEAM_ANS.SILVER.REFRESH_SILVER_TABLES();   -- Call REFRESH_SILVER_TABLES()
+
+-- -- Optional sanity check
+-- SHOW TASKS IN SCHEMA DB_TEAM_ANS.SILVER;
+
+-- -- Grant EXECUTE TASK to the task owner role
+-- GRANT EXECUTE TASK ON ACCOUNT TO ROLE ROLE_TEAM_ANS;
+
+-- -- Enable the task (by default a task is created suspended)
+-- ALTER TASK REFRESH_SILVER_TABLES_TASK RESUME;
+
+-- -- Temporarily stop it
+-- -- ALTER TASK REFRESH_SILVER_TABLES_TASK SUSPEND;
+
+-- -- Optional: see history once it starts running
+-- SELECT *
+-- FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(
+--     TASK_NAME => 'REFRESH_SILVER_TABLES_TASK',
+--     RESULT_LIMIT => 20
+-- ));
+
+-- DROP TASK REFRESH_SILVER_TABLES_TASK;
+
 
 
 
@@ -2895,7 +2957,12 @@ SELECT
     gold_track_content_rows,
     gold_difficulty_content_rows,
     silver_fact_course_rows,
-    silver_fact_track_rows
+    silver_fact_track_rows,
+    gold_language_total_courses,
+    gold_language_total_subs,
+    gold_track_total_courses,
+    gold_track_total_subs,
+    gold_difficulty_total_subs
 FROM DB_TEAM_ANS.GOLD.GOLD_LOAD_AUDIT
 ORDER BY audit_id;
 

@@ -143,7 +143,6 @@ SELECT
     AVG(f.num_videos)                                  AS avg_videos_per_course,
 
     SUM(f.nb_of_subscriptions)                         AS total_nb_of_subscriptions,
-    SUM(f.datasets_count)                              AS total_datasets_count,
 
     ls.snapshot_date_sk                                AS snapshot_date_sk
 FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER f
@@ -205,7 +204,6 @@ SELECT
     AVG(f.num_videos)                                  AS avg_videos_per_course,
 
     SUM(f.nb_of_subscriptions)                         AS total_nb_of_subscriptions,
-    SUM(f.datasets_count)                              AS total_datasets_count,
 
     ls.snapshot_date_sk                                AS snapshot_date_sk
 FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER f
@@ -241,7 +239,14 @@ CREATE TABLE IF NOT EXISTS GOLD_LOAD_AUDIT (
 
     -- Silver layer comparison (optional but nice for validation)
     silver_fact_course_rows               NUMBER,
-    silver_fact_track_rows                NUMBER
+    silver_fact_track_rows                NUMBER,
+
+    -- Gold layer aggregate metrics
+    gold_language_total_courses           NUMBER,
+    gold_language_total_subs              NUMBER,
+    gold_track_total_courses              NUMBER,
+    gold_track_total_subs                 NUMBER,
+    gold_difficulty_total_subs            NUMBER
 );
 
 ------------------------------------------------------------------

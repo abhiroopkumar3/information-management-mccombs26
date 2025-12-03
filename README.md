@@ -600,6 +600,7 @@ project/
 ├── 13_-_ALL_TABLES_QUERYING.sql
 ├── ans_gold_streamlit_app.py
 ├── ans_silver_semantic_model.yaml
+├── ans_silver_schema_erd_diagram.svg
  Datasets/
 │   ├── courses.csv
 │   ├── all_tracks.csv

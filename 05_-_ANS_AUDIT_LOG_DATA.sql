@@ -87,7 +87,12 @@ BEGIN
         gold_track_content_rows,
         gold_difficulty_content_rows,
         silver_fact_course_rows,
-        silver_fact_track_rows
+        silver_fact_track_rows,
+        gold_language_total_courses,
+        gold_language_total_subs,
+        gold_track_total_courses,
+        gold_track_total_subs,
+        gold_difficulty_total_subs
     )
     SELECT
         CURRENT_TIMESTAMP()                                              AS load_ts,
@@ -99,7 +104,19 @@ BEGIN
 
         -- Silver facts (for upstream comparison)
         (SELECT COUNT(*) FROM DB_TEAM_ANS.SILVER.FACT_COURSE_SNAPSHOT_SILVER),
-        (SELECT COUNT(*) FROM DB_TEAM_ANS.SILVER.FACT_TRACK_SUMMARY_SILVER);
+        (SELECT COUNT(*) FROM DB_TEAM_ANS.SILVER.FACT_TRACK_SUMMARY_SILVER),
+
+        -- Gold aggregate metrics (these should change as new courses/tracks are loaded)
+        (SELECT SUM(course_count)
+           FROM DB_TEAM_ANS.GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT),
+        (SELECT SUM(total_nb_of_subscriptions)
+           FROM DB_TEAM_ANS.GOLD.G_LANGUAGE_INSTRUCTIONAL_EFFORT),
+        (SELECT SUM(course_count)
+           FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY),
+        (SELECT SUM(total_nb_of_subscriptions)
+           FROM DB_TEAM_ANS.GOLD.G_TRACK_CONTENT_SUMMARY),
+        (SELECT SUM(total_nb_of_subscriptions)
+            FROM DB_TEAM_ANS.GOLD.G_DIFFICULTY_CONTENT_SUMMARY);
 
     RETURN 'Gold metrics recorded in GOLD_LOAD_AUDIT.';
 END;
@@ -115,7 +132,12 @@ SELECT
     gold_track_content_rows,
     gold_difficulty_content_rows,
     silver_fact_course_rows,
-    silver_fact_track_rows
+    silver_fact_track_rows,
+    gold_language_total_courses,
+    gold_language_total_subs,
+    gold_track_total_courses,
+    gold_track_total_subs,
+    gold_difficulty_total_subs
 FROM DB_TEAM_ANS.GOLD.GOLD_LOAD_AUDIT
 ORDER BY audit_id;
 

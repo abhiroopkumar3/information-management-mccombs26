@@ -3017,7 +3017,7 @@ SELECT
     description,
     short_description,
     instructors_names
-FROM DCAMP_COURSES_BRONZE;
+FROM DB_TEAM_ANS.BRONZE.DCAMP_COURSES_BRONZE;
 
 ------------------------------------------------------------------
 -- 1. AI_SIMILARITY – Finding Meaningful Connections
@@ -3052,7 +3052,7 @@ SELECT
     description,
     short_description,
     instructors_names
-FROM DCAMP_COURSES_BRONZE
+FROM DB_TEAM_ANS.BRONZE.DCAMP_COURSES_BRONZE
 ORDER BY ai_title_similarity DESC;
 
 

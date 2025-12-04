@@ -1,0 +1,757 @@
+# --------------------------------------------------------------------
+# Semantic Model for DB_TEAM_ANS.SILVER
+# --------------------------------------------------------------------
+name: ans_datacamp_silver_model
+description: >
+  Semantic model on the DB_TEAM_ANS.SILVER star schema for DataCamp
+  courses & tracks. Exposes Silver fact tables and conformed dimensions
+  so Cortex Analyst can answer natural-language questions.
+
+# --------------------------------------------------------------------
+# LOGICAL TABLES (each maps to a physical Silver table)
+# --------------------------------------------------------------------
+tables:
+
+  # =====================
+  # DIMENSIONS
+  # =====================
+  - name: dim_date
+    description: Date dimension for snapshots and last_updated_on.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_DATE
+    primary_key:
+      columns:
+        - date_sk
+
+    # Logical columns on DIM_DATE
+    dimensions:
+      - name: date_sk
+        expr: date_sk
+        data_type: NUMBER
+        unique: true
+
+      - name: day_of_month
+        expr: day_of_month
+        data_type: NUMBER
+
+      - name: day_of_week
+        expr: day_of_week
+        data_type: NUMBER
+
+      - name: day_name
+        expr: day_name
+        data_type: STRING
+
+      - name: is_weekend
+        expr: is_weekend
+        data_type: BOOLEAN
+
+    time_dimensions:
+      - name: calendar_date
+        synonyms: ["date", "snapshot date"]
+        expr: date_value
+        data_type: DATE
+        unique: true
+
+      - name: year
+        expr: year
+        data_type: NUMBER
+
+      - name: quarter
+        expr: quarter
+        data_type: NUMBER
+
+      - name: month
+        expr: month
+        data_type: NUMBER
+
+      - name: month_name
+        expr: month_name
+        data_type: STRING
+
+      - name: week_of_year
+        expr: week_of_year
+        data_type: NUMBER
+
+  - name: dim_programming_language
+    description: Lookup dimension for programming languages used in courses and tracks.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_PROGRAMMING_LANGUAGE
+    primary_key:
+      columns:
+        - language_sk
+    dimensions:
+      - name: language_sk
+        expr: language_sk
+        data_type: NUMBER
+        unique: true
+      - name: language_code
+        expr: language_code
+        data_type: STRING
+      - name: language_name
+        synonyms: ["programming language", "language"]
+        expr: language_name
+        data_type: STRING
+
+  - name: dim_difficulty
+    description: Normalized difficulty level lookup across courses and tracks.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_DIFFICULTY
+    primary_key:
+      columns:
+        - difficulty_sk
+    dimensions:
+      - name: difficulty_sk
+        expr: difficulty_sk
+        data_type: NUMBER
+        unique: true
+      - name: difficulty_code
+        synonyms: ["difficulty", "difficulty label"]
+        expr: difficulty_code
+        data_type: STRING
+      - name: difficulty_order
+        expr: difficulty_order
+        data_type: NUMBER
+
+  - name: dim_content_area
+    description: Content area dimension (e.g. SQL, Python, Machine Learning).
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_CONTENT_AREA
+    primary_key:
+      columns:
+        - content_area_sk
+    dimensions:
+      - name: content_area_sk
+        expr: content_area_sk
+        data_type: NUMBER
+        unique: true
+      - name: content_area_name
+        synonyms: ["content area", "subject area", "topic area"]
+        expr: content_area_name
+        data_type: STRING
+
+  - name: dim_topic
+    description: Topic lookup dimension (from DCAMP_TOPIC_MAPPING).
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_TOPIC
+    primary_key:
+      columns:
+        - topic_sk
+    dimensions:
+      - name: topic_sk
+        expr: topic_sk
+        data_type: NUMBER
+        unique: true
+      - name: topic_id
+        expr: topic_id
+        data_type: STRING
+      - name: topic_name
+        expr: topic_name
+        data_type: STRING
+
+  - name: dim_technology
+    description: Technology lookup dimension (from DCAMP_TECHNOLOGY_MAPPING).
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_TECHNOLOGY
+    primary_key:
+      columns:
+        - technology_sk
+    dimensions:
+      - name: technology_sk
+        expr: technology_sk
+        data_type: NUMBER
+        unique: true
+      - name: technology_id
+        expr: technology_id
+        data_type: STRING
+      - name: technology_name
+        expr: technology_name
+        data_type: STRING
+
+  - name: dim_instructor
+    description: One row per unique instructor across courses and tracks.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_INSTRUCTOR
+    primary_key:
+      columns:
+        - instructor_sk
+    dimensions:
+      - name: instructor_sk
+        expr: instructor_sk
+        data_type: NUMBER
+        unique: true
+      - name: instructor_name
+        synonyms: ["instructor"]
+        expr: instructor_name
+        data_type: STRING
+
+  - name: dim_collaborator
+    description: One row per unique collaborator from course-level data.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_COLLABORATOR
+    primary_key:
+      columns:
+        - collaborator_sk
+    dimensions:
+      - name: collaborator_sk
+        expr: collaborator_sk
+        data_type: NUMBER
+        unique: true
+      - name: collaborator_name
+        synonyms: ["collaborator"]
+        expr: collaborator_name
+        data_type: STRING
+
+  - name: dim_track
+    description: Track-level descriptive attributes, separate from track facts.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_TRACK
+    primary_key:
+      columns:
+        - track_sk
+    dimensions:
+      - name: track_sk
+        expr: track_sk
+        data_type: NUMBER
+        unique: true
+      - name: track_id
+        expr: track_id
+        data_type: STRING
+      - name: track_title
+        synonyms: ["track name"]
+        expr: track_title
+        data_type: STRING
+      - name: is_career_flag
+        synonyms: ["is career track", "career track flag"]
+        expr: is_career_flag
+        data_type: BOOLEAN
+      - name: programming_language_sk
+        expr: programming_language_sk
+        data_type: NUMBER
+      - name: predominant_difficulty_sk
+        expr: predominant_difficulty_sk
+        data_type: NUMBER
+      # raw lineage-style attributes
+      - name: raw_course_difficulty_levels
+        expr: raw_course_difficulty_levels
+        data_type: STRING
+      - name: raw_course_titles
+        expr: raw_course_titles
+        data_type: STRING
+      - name: raw_instructors
+        expr: raw_instructors
+        data_type: STRING
+      - name: raw_programming_languages
+        expr: raw_programming_languages
+        data_type: STRING
+
+  - name: dim_course
+    description: Central course dimension with descriptive attributes and FKs.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: DIM_COURSE
+    primary_key:
+      columns:
+        - course_sk
+    dimensions:
+      - name: course_sk
+        expr: course_sk
+        data_type: NUMBER
+        unique: true
+      - name: course_id
+        expr: course_id
+        data_type: STRING
+
+      # core descriptive attributes
+      - name: title
+        synonyms: ["course title", "course name"]
+        expr: title
+        data_type: STRING
+      - name: short_description
+        expr: short_description
+        data_type: STRING
+      - name: description
+        expr: description
+        data_type: STRING
+      - name: xp
+        expr: xp
+        data_type: NUMBER
+      - name: time_needed_hours
+        synonyms: ["time needed hours", "duration hours"]
+        expr: time_needed_hours
+        data_type: NUMBER
+
+      # foreign key attributes to other dims
+      - name: programming_language_sk
+        expr: programming_language_sk
+        data_type: NUMBER
+      - name: difficulty_sk
+        expr: difficulty_sk
+        data_type: NUMBER
+      - name: topic_sk
+        expr: topic_sk
+        data_type: NUMBER
+      - name: technology_sk
+        expr: technology_sk
+        data_type: NUMBER
+      - name: content_area_sk
+        expr: content_area_sk
+        data_type: NUMBER
+      - name: last_updated_date_sk
+        expr: last_updated_date_sk
+        data_type: NUMBER
+
+      # URLs and media
+      - name: course_url
+        expr: course_url
+        data_type: STRING
+      - name: image_url
+        expr: image_url
+        data_type: STRING
+
+      # raw list-style lineage attributes
+      - name: raw_instructors_names
+        expr: raw_instructors_names
+        data_type: STRING
+      - name: raw_collaborators_names
+        expr: raw_collaborators_names
+        data_type: STRING
+      - name: raw_tracks_titles
+        expr: raw_tracks_titles
+        data_type: STRING
+      - name: raw_prerequisites_titles
+        expr: raw_prerequisites_titles
+        data_type: STRING
+
+  # =====================
+  # FACT TABLES
+  # =====================
+  - name: fact_course_snapshots
+    description: Course-level snapshot fact table (one row per course, date).
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: FACT_COURSE_SNAPSHOT_SILVER
+    primary_key:
+      columns:
+        - course_snapshot_sk
+    dimensions:
+      - name: course_snapshot_sk
+        expr: course_snapshot_sk
+        data_type: NUMBER
+        unique: true
+      - name: course_sk
+        expr: course_sk
+        data_type: NUMBER
+      - name: snapshot_date_sk
+        expr: snapshot_date_sk
+        data_type: NUMBER
+      - name: load_ts
+        expr: load_ts
+        data_type: TIMESTAMP_NTZ
+    facts:
+      - name: nb_of_subscriptions
+        synonyms: ["enrollments", "subscriptions"]
+        expr: nb_of_subscriptions
+        data_type: NUMBER
+      - name: num_chapters
+        expr: num_chapters
+        data_type: NUMBER
+      - name: num_exercises
+        expr: num_exercises
+        data_type: NUMBER
+      - name: num_videos
+        expr: num_videos
+        data_type: NUMBER
+      - name: datasets_count
+        expr: datasets_count
+        data_type: NUMBER
+    metrics:
+      - name: total_subscriptions
+        expr: SUM(nb_of_subscriptions)
+      - name: total_course_chapters
+        expr: SUM(num_chapters)
+      - name: total_course_exercises
+        expr: SUM(num_exercises)
+      - name: total_course_videos
+        expr: SUM(num_videos)
+      - name: total_course_datasets
+        expr: SUM(datasets_count)
+
+  - name: fact_track_snapshots
+    description: Track-level fact table with aggregated metrics per track, date.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: FACT_TRACK_SUMMARY_SILVER
+    primary_key:
+      columns:
+        - track_summary_sk
+    dimensions:
+      - name: track_summary_sk
+        expr: track_summary_sk
+        data_type: NUMBER
+        unique: true
+      - name: track_sk
+        expr: track_sk
+        data_type: NUMBER
+      - name: snapshot_date_sk
+        expr: snapshot_date_sk
+        data_type: NUMBER
+      - name: is_career_flag
+        expr: is_career_flag
+        data_type: BOOLEAN
+      - name: predominant_difficulty_sk
+        expr: predominant_difficulty_sk
+        data_type: NUMBER
+      - name: load_ts
+        expr: load_ts
+        data_type: TIMESTAMP_NTZ
+    facts:
+      - name: course_count
+        expr: course_count
+        data_type: NUMBER
+      - name: total_chapters
+        expr: total_chapters
+        data_type: NUMBER
+      - name: total_exercises
+        expr: total_exercises
+        data_type: NUMBER
+      - name: total_videos
+        expr: total_videos
+        data_type: NUMBER
+      - name: total_xp
+        expr: total_xp
+        data_type: NUMBER
+      - name: avg_xp_per_course
+        expr: avg_xp_per_course
+        data_type: NUMBER
+      - name: avg_time_hours
+        expr: avg_time_hours
+        data_type: NUMBER
+      - name: total_duration_hours
+        expr: total_duration_hours
+        data_type: NUMBER
+      - name: datasets_count
+        expr: datasets_count
+        data_type: NUMBER
+      - name: participant_count
+        expr: participant_count
+        data_type: NUMBER
+    metrics:
+      - name: total_track_courses
+        expr: SUM(course_count)
+      - name: total_track_participants
+        expr: SUM(participant_count)
+      - name: total_track_xp
+        expr: SUM(total_xp)
+      - name: avg_track_xp_per_course
+        expr: AVG(avg_xp_per_course)
+
+  # =====================
+  # BRIDGE TABLES
+  # =====================
+  - name: bridge_course_instructor
+    description: Bridge table linking courses to instructors (and roles).
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: BRIDGE_COURSE_INSTRUCTOR
+    primary_key:
+      columns:
+        - course_sk
+        - instructor_sk
+        - role
+    dimensions:
+      - name: course_sk
+        expr: course_sk
+        data_type: NUMBER
+      - name: instructor_sk
+        expr: instructor_sk
+        data_type: NUMBER
+      - name: role
+        expr: role
+        data_type: STRING
+      - name: instructor_order
+        expr: instructor_order
+        data_type: NUMBER
+
+  - name: bridge_course_track
+    description: Bridge table linking courses to tracks.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: BRIDGE_COURSE_TRACK
+    primary_key:
+      columns:
+        - course_sk
+        - track_sk
+    dimensions:
+      - name: course_sk
+        expr: course_sk
+        data_type: NUMBER
+      - name: track_sk
+        expr: track_sk
+        data_type: NUMBER
+
+  - name: bridge_course_prerequisite
+    description: Self-referencing bridge between dependent and prerequisite courses.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: BRIDGE_COURSE_PREREQUISITE
+    primary_key:
+      columns:
+        - course_sk
+        - prerequisite_course_sk
+    dimensions:
+      - name: course_sk
+        expr: course_sk
+        data_type: NUMBER
+      - name: prerequisite_course_sk
+        expr: prerequisite_course_sk
+        data_type: NUMBER
+
+  - name: bridge_course_collaborator
+    description: Bridge table linking courses to collaborators.
+    base_table:
+      database: DB_TEAM_ANS
+      schema: SILVER
+      table: BRIDGE_COURSE_COLLABORATOR
+    primary_key:
+      columns:
+        - course_sk
+        - collaborator_sk
+    dimensions:
+      - name: course_sk
+        expr: course_sk
+        data_type: NUMBER
+      - name: collaborator_sk
+        expr: collaborator_sk
+        data_type: NUMBER
+
+# --------------------------------------------------------------------
+# MODEL-LEVEL RELATIONSHIPS (joins between logical tables)
+# --------------------------------------------------------------------
+relationships:
+
+  # =========================
+  # FACTS → CORE DIMENSIONS
+  # =========================
+  - name: fact_course_to_dim_course
+    left_table: fact_course_snapshots        # FACT_COURSE_SNAPSHOT_SILVER
+    right_table: dim_course                  # DIM_COURSE
+    relationship_columns:
+      - left_column: course_sk
+        right_column: course_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: fact_course_to_dim_date
+    left_table: fact_course_snapshots        # FACT_COURSE_SNAPSHOT_SILVER
+    right_table: dim_date                    # DIM_DATE
+    relationship_columns:
+      - left_column: snapshot_date_sk
+        right_column: date_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: fact_track_to_dim_track
+    left_table: fact_track_snapshots         # FACT_TRACK_SUMMARY_SILVER
+    right_table: dim_track                   # DIM_TRACK
+    relationship_columns:
+      - left_column: track_sk
+        right_column: track_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: fact_track_to_dim_date
+    left_table: fact_track_snapshots
+    right_table: dim_date
+    relationship_columns:
+      - left_column: snapshot_date_sk
+        right_column: date_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: fact_track_to_dim_difficulty
+    left_table: fact_track_snapshots
+    right_table: dim_difficulty
+    relationship_columns:
+      - left_column: predominant_difficulty_sk
+        right_column: difficulty_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  # ==================================
+  # DIM_TRACK / DIM_COURSE → LOOKUPS
+  # ==================================
+  - name: dim_track_to_dim_programming_language
+    left_table: dim_track
+    right_table: dim_programming_language
+    relationship_columns:
+      - left_column: programming_language_sk
+        right_column: language_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_track_to_dim_difficulty
+    left_table: dim_track
+    right_table: dim_difficulty
+    relationship_columns:
+      - left_column: predominant_difficulty_sk
+        right_column: difficulty_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_course_to_dim_programming_language
+    left_table: dim_course
+    right_table: dim_programming_language
+    relationship_columns:
+      - left_column: programming_language_sk
+        right_column: language_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_course_to_dim_difficulty
+    left_table: dim_course
+    right_table: dim_difficulty
+    relationship_columns:
+      - left_column: difficulty_sk
+        right_column: difficulty_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_course_to_dim_topic
+    left_table: dim_course
+    right_table: dim_topic
+    relationship_columns:
+      - left_column: topic_sk
+        right_column: topic_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_course_to_dim_technology
+    left_table: dim_course
+    right_table: dim_technology
+    relationship_columns:
+      - left_column: technology_sk
+        right_column: technology_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_course_to_dim_content_area
+    left_table: dim_course
+    right_table: dim_content_area
+    relationship_columns:
+      - left_column: content_area_sk
+        right_column: content_area_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  - name: dim_course_to_dim_date_last_updated
+    left_table: dim_course
+    right_table: dim_date
+    relationship_columns:
+      - left_column: last_updated_date_sk
+        right_column: date_sk
+    join_type: left_outer
+    relationship_type: many_to_one
+
+  # ==========================
+  # BRIDGES → DIMENSIONS
+  # ==========================
+  - name: bridge_course_instructor_to_dim_course
+    left_table: bridge_course_instructor
+    right_table: dim_course
+    relationship_columns:
+      - left_column: course_sk
+        right_column: course_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_course_instructor_to_dim_instructor
+    left_table: bridge_course_instructor
+    right_table: dim_instructor
+    relationship_columns:
+      - left_column: instructor_sk
+        right_column: instructor_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_course_track_to_dim_course
+    left_table: bridge_course_track
+    right_table: dim_course
+    relationship_columns:
+      - left_column: course_sk
+        right_column: course_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_course_track_to_dim_track
+    left_table: bridge_course_track
+    right_table: dim_track
+    relationship_columns:
+      - left_column: track_sk
+        right_column: track_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_course_prerequisite_to_dim_course
+    left_table: bridge_course_prerequisite
+    right_table: dim_course
+    relationship_columns:
+      - left_column: course_sk
+        right_column: course_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_prerequisite_course_to_dim_course
+    left_table: bridge_course_prerequisite
+    right_table: dim_course
+    relationship_columns:
+      - left_column: prerequisite_course_sk
+        right_column: course_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_course_collaborator_to_dim_course
+    left_table: bridge_course_collaborator
+    right_table: dim_course
+    relationship_columns:
+      - left_column: course_sk
+        right_column: course_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+  - name: bridge_course_collaborator_to_dim_collaborator
+    left_table: bridge_course_collaborator
+    right_table: dim_collaborator
+    relationship_columns:
+      - left_column: collaborator_sk
+        right_column: collaborator_sk
+    join_type: inner
+    relationship_type: many_to_one
+
+# --------------------------------------------------------------------
+# END OF SCRIPT
+# --------------------------------------------------------------------

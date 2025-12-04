@@ -1,0 +1,38 @@
+technology_id,technology_name
+1,R
+2,Python
+3,SQL
+4,Git
+5,Shell
+6,Google Sheets
+7,Theory
+8,Scala
+9,Tableau
+10,Excel
+11,Power BI
+12,Julia
+13,Docker
+17,Snowflake
+18,Redshift
+19,BigQuery
+20,Airflow
+21,AWS
+22,Databricks
+23,dbt
+24,MLflow
+25,OpenAI
+26,ChatGPT
+27,PyTorch
+28,Spark
+29,Azure
+31,Kubernetes
+32,DVC
+33,Kafka
+34,Alteryx
+35,Java
+37,Llama
+38,KNIME
+39,FastAPI
+40,Microsoft Copilot
+43,DataLab
+44,Sigma

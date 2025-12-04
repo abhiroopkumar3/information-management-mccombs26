@@ -1,0 +1,3 @@
+track_id,track_title,is_career,course_count,total_chapters,total_exercises,total_videos,total_xp,avg_xp_per_course,avg_time_hours,total_duration_hours,datasets_count,programming_languages,course_difficulty_levels,predominant_difficulty,course_titles,instructors,participant_count
+116,MLOps Engineer in Python (Incremental),Yes,3,13,117,46,12200,4066.666667,3.666667,11,8,python,2,2,"MLOps with Databricks and MLflow,Productionizing Generative AI on Vertex AI,Monitoring Data Quality for MLOps Pipelines","Alex Rivera,Priya Sharma","1,252"
+117,LLM Applications Specialist (Incremental),Yes,2,8,80,32,8400,4200,3.5,7,5,python,2,2,"Building LLM Apps with ChatGPT and dbt,Productionizing Generative AI on Vertex AI","Alex Rivera,Priya Sharma","1,459"
